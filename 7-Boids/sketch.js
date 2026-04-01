@@ -104,6 +104,11 @@ function draw() {
   //imageMode(CORNER);
   //image(requinImage, 0, 0, width, height);
 
+  // dessin des obstacles
+  obstacles.forEach(obstacle => {
+    obstacle.show();
+  });
+
     // mettre à jour le nombre de boids
     labelNbBoids.html("Nombre de boids : " + flock.length);
 
@@ -119,14 +124,13 @@ function draw() {
 
   for (let boid of flock) {
     // équivalent de applyBehaviors, cohesion + separation + alignenement + confinement
-    boid.flock(flock);
+    boid.flock(flock, obstacles);
 
     boid.fleeWithTargetRadius(requin);
 
     // on tester le comportement fleeWithTargetRadius sur tous les obstacles
-    obstacles.forEach(obstacle => {
-      boid.fleeWithTargetRadius(obstacle);
-    });
+    
+    boid.fleeWithTargetRadius(obstacles[0]);
 
     boid.update();
     boid.show();
@@ -198,6 +202,11 @@ function mouseDragged() {
   flock.push(b);
 
 
+}
+
+function mousePressed() {
+  // TODO : ajouter un obstacle de taille aléatoire à la position de la souris
+  obstacles.push(new Obstacle(mouseX, mouseY, random(20, 100), "green"));
 }
 
 function keyPressed() {

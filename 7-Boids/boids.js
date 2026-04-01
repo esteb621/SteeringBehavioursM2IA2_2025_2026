@@ -42,6 +42,8 @@ class Boid {
     this.separationWeight = 2;
     // Pour le confinement
     this.boundariesWeight = 10;
+    // pour le avoid
+    this.avoidWeight = 15;
 
     // Paramètres comportement confinement
     this.boundariesX = 0;
@@ -56,17 +58,23 @@ class Boid {
     this.wanderRadius = 50;
     this.wanderTheta = 0;
     this.displaceRange = 0.1;
+
+     // Pour évitement d'obstacle
+    this.largeurZoneEvitementDevantVaisseau = this.r / 2;
+
   }
 
   // Equivalent de "applyBehaviors" dans le code des autres exemples
   // flock signifie "se rassembler" en anglais
-  flock(boids) {
+  flock(boids, obstacles) {
+    let avoid = this.avoid(obstacles);
     let alignment = this.align(boids);
     let cohesion = this.cohesion(boids);
     let separation = this.separation(boids);
     let boundaries = this.boundaries(this.boundariesX, this.boundariesY, this.boundariesWidth, this.boundariesHeight, this.boundariesDistance);
     //let boundaries = this.boundaries(100, 200, 800, 400, 25);
 
+    avoid.mult(this.avoidWeight);
     alignment.mult(this.alignWeight);
     cohesion.mult(this.cohesionWeight);
     separation.mult(this.separationWeight);
@@ -76,6 +84,130 @@ class Boid {
     this.applyForce(cohesion);
     this.applyForce(separation);
     this.applyForce(boundaries);
+    this.applyForce(avoid);
+  }
+
+  avoid(obstacles) {
+    // TODO
+
+
+    // il regarde par exemple 20 frames devant lui
+    let ahead = this.vel.copy()
+    ahead.mult(30);
+    if (Boid.debug)
+      // on le dessine avec ma méthode this.drawVector(pos vecteur, color)
+      this.drawVector(this.pos, ahead, "yellow");
+
+    // on calcule la distance entre le point au bout du vecteur ahead
+    // et le centre de l'obstacle le plus proche
+    let pointAuBoutDeAhead = p5.Vector.add(this.pos, ahead);
+
+    if (Boid.debug) {
+      // on dessine le point pour vérifier
+      push()
+      fill("red");
+      circle(pointAuBoutDeAhead.x, pointAuBoutDeAhead.y, 10);
+      pop();
+    }
+    // 1 - on duplique le vecteur vitesse
+    // calcul d'un vecteur ahead devant le véhicule
+    // ahead2 est deux fois plus petit
+    let ahead2 = this.vel.copy()
+    ahead2.mult(15);
+    if (Boid.debug) {
+      // on le dessine avec ma méthode this.drawVector(pos vecteur, color)
+      this.drawVector(this.pos, ahead2, "purple");
+    }
+    // on calcule la distance entre le point au bout du vecteur ahead
+    // et le centre de l'obstacle le plus proche
+    let pointAuBoutDeAhead2 = p5.Vector.add(this.pos, ahead2);
+    if (Boid.debug) {
+      // on dessine le point pour vérifier
+      push()
+      fill("lightblue");
+      circle(pointAuBoutDeAhead2.x, pointAuBoutDeAhead2.y, 10);
+      pop();
+
+      // on dessine la zone d'évitement
+      push()
+      stroke(255, 50)
+      strokeWeight(this.largeurZoneEvitementDevantVaisseau * 2)
+      line(this.pos.x, this.pos.y, pointAuBoutDeAhead.x, pointAuBoutDeAhead.y)
+      pop()
+    }
+    // On cherche l'obstacle le plus proche
+    let obstacleLePlusProche = this.getObstacleLePlusProche(obstacles);
+
+    // on regarde aussi le vehicule le plus proche
+    //let vehiculeLePlusProche = this.getVehiculeLePlusProche(vehicules)
+    let distance4 = 1000000;
+
+    /*
+    if (vehiculeLePlusProche !== undefined) {
+      // on calcule la distance4 entre le vaisseau et
+      // ce vehicule
+      distance4 = this.pos.dist(vehiculeLePlusProche.pos);
+    }
+*/
+    let distance = obstacleLePlusProche.pos.dist(pointAuBoutDeAhead);
+    let distance2 = obstacleLePlusProche.pos.dist(pointAuBoutDeAhead2);
+    let distance3 = obstacleLePlusProche.pos.dist(this.pos);
+
+    let pointLePlusProche = pointAuBoutDeAhead;
+
+    if (distance2 < distance) {
+      distance = distance2;
+      pointLePlusProche = pointAuBoutDeAhead2
+    }
+
+    if (distance3 < distance) {
+      distance = distance3;
+      pointLePlusProche = this.pos;
+    }
+    if (distance4 < distance) {
+      // on a bien un vaisseau qui est plus près que l'obstacle le plus proche
+      if (distance4 < 2 * this.r) {
+        // il y a collision, on calcule la force
+        let force = p5.Vector.sub(this.pos, vehiculeLePlusProche.pos);
+
+        if (Boid.debug)
+          this.drawVector(vehiculeLePlusProche.pos, force, "yellow");
+
+        force.setMag(this.maxForce);
+        return force;
+
+      }
+    } else {
+      if (distance < obstacleLePlusProche.r + this.largeurZoneEvitementDevantVaisseau) {
+        // on calcule le vecteur qui part du centre du cercle et qui va
+        // jusqu'au point au bout de ahead
+        let force = p5.Vector.sub(pointLePlusProche, obstacleLePlusProche.pos);
+
+        if (Boid.debug)
+          this.drawVector(obstacleLePlusProche.pos, force, "yellow");
+
+        force.setMag(this.maxForce/2);
+        return force;
+      }
+    }
+    return createVector(0, 0);
+  }
+
+    getObstacleLePlusProche(obstacles) {
+    let plusPetiteDistance = 100000000;
+    let obstacleLePlusProche = undefined;
+
+    obstacles.forEach(o => {
+      // Je calcule la distance entre le vaisseau et l'obstacle
+      const distance = this.pos.dist(o.pos);
+
+      if (distance < plusPetiteDistance) {
+        plusPetiteDistance = distance;
+        obstacleLePlusProche = o;
+      }
+    });
+
+    return obstacleLePlusProche;
   }
 
   align(boids) {
@@ -379,5 +511,20 @@ class Boid {
       this.pos.y = height;
     }
   }
-
+ drawVector(pos, v, color) {
+    push();
+    // Dessin du vecteur vitesse
+    // Il part du centre du véhicule et va dans la direction du vecteur vitesse
+    strokeWeight(3);
+    stroke(color);
+    line(pos.x, pos.y, pos.x + v.x, pos.y + v.y);
+    // dessine une petite fleche au bout du vecteur vitesse
+    let arrowSize = 5;
+    translate(pos.x + v.x, pos.y + v.y);
+    rotate(v.heading());
+    translate(-arrowSize / 2, 0);
+    triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
+    pop();
+  }
+  
 }
