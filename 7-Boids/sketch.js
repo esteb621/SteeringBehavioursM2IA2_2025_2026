@@ -5,8 +5,8 @@
 
 // Equivalent du tableau de véhicules dans les autres exemples
 const flock = [];
-let fishImage;
-let requinImage;
+let coinImage;
+let marioImage;
 let obstacleSouris;
 
 let obstacles = [];
@@ -19,15 +19,15 @@ let requin;
 
 function preload() {
   // On charge une image de poisson
-  fishImage = loadImage('assets/niceFishtransparent.png');
+  coinImage = loadImage('assets/coin.webp');
   //requinImage = loadImage('assets/requin.png');
-  requinImage = loadImage('assets/SharkTransparent.png');
+  marioImage = loadImage('assets/mario.png');
 
   // Préchargement du son du requin quand il mange un poisson
-  soundFormats('mp3', 'ogg');
-  eatSound = loadSound('assets/eating.wav');
+  soundFormats('mp3', 'm4a');
+  eatSound = loadSound('assets/super-mario-coin-sound.mp3');
   aie = loadSound('assets/aie.wav');
-  ouuu = loadSound('assets/ouuuu.ogg');
+  ouuu = loadSound('assets/scream.mp3');
 }
 
 function setup() {
@@ -38,33 +38,33 @@ function setup() {
   // rappel : tableauDesVehicules, min max val step posX posY propriété
   const posYSliderDeDepart = 10;
   creerUnSlider("Poids alignment", flock, 0, 2, 1.5, 0.1, 10, posYSliderDeDepart, "alignWeight");
-  creerUnSlider("Poids cohesion", flock, 0, 2, 1, 0.1, 10, posYSliderDeDepart+30, "cohesionWeight");
-  creerUnSlider("Poids séparation", flock, 0, 15, 3, 0.1, 10, posYSliderDeDepart+60,"separationWeight");
-  creerUnSlider("Poids boundaries", flock, 0, 15, 10, 1, 10, posYSliderDeDepart+90,"boundariesWeight");
-  
-  creerUnSlider("Rayon des boids", flock, 4, 40, 6, 1, 10, posYSliderDeDepart+120,"r");
-  creerUnSlider("Perception radius", flock, 15, 60, 25, 1, 10, posYSliderDeDepart+150,"perceptionRadius");
+  creerUnSlider("Poids cohesion", flock, 0, 2, 1, 0.1, 10, posYSliderDeDepart + 30, "cohesionWeight");
+  creerUnSlider("Poids séparation", flock, 0, 15, 3, 0.1, 10, posYSliderDeDepart + 60, "separationWeight");
+  creerUnSlider("Poids boundaries", flock, 0, 15, 10, 1, 10, posYSliderDeDepart + 90, "boundariesWeight");
+
+  creerUnSlider("Rayon des boids", flock, 4, 40, 6, 1, 10, posYSliderDeDepart + 120, "r");
+  creerUnSlider("Perception radius", flock, 15, 60, 25, 1, 10, posYSliderDeDepart + 150, "perceptionRadius");
 
   // On créer les "boids". Un boid en anglais signifie "un oiseau" ou "un poisson"
   // Dans cet exemple c'est l'équivalent d'un véhicule dans les autres exemples
   for (let i = 0; i < 200; i++) {
-    const b = new Boid(random(width), random(height), fishImage);
+    const b = new Boid(random(width), random(height), coinImage);
     b.r = random(8, 40);
     flock.push(b);
   }
 
   // Créer un label avec le nombre de boids présents à l'écran
-   labelNbBoids = createP("Nombre de boids : " + flock.length);
+  labelNbBoids = createP("Nombre de boids : " + flock.length);
   // couleur blanche
   labelNbBoids.style('color', 'white');
-  labelNbBoids.position(10, posYSliderDeDepart+180);
+  labelNbBoids.position(10, posYSliderDeDepart + 180);
 
   // target qui suit la souris
   target = createVector(mouseX, mouseY);
   target.r = 50;
 
   // requin prédateur
-  requin = new Boid(width/2, height/2, requinImage);
+  requin = new Boid(width / 2, height / 2, marioImage);
   requin.r = 40;
   requin.maxSpeed = 7;
   requin.maxForce = 0.5;
@@ -76,7 +76,7 @@ function setup() {
 
 function creerUnSlider(label, tabVehicules, min, max, val, step, posX, posY, propriete) {
   let slider = createSlider(min, max, val, step);
-  
+
   let labelP = createP(label);
   labelP.position(posX, posY);
   labelP.style('color', 'white');
@@ -84,7 +84,7 @@ function creerUnSlider(label, tabVehicules, min, max, val, step, posX, posY, pro
   slider.position(posX + 150, posY + 17);
 
   let valueSpan = createSpan(slider.value());
-  valueSpan.position(posX + 300, posY+17);
+  valueSpan.position(posX + 300, posY + 17);
   valueSpan.style('color', 'white');
   valueSpan.html(slider.value());
 
@@ -109,19 +109,18 @@ function draw() {
     obstacle.show();
   });
 
-    // mettre à jour le nombre de boids
-    labelNbBoids.html("Nombre de boids : " + flock.length);
+  // mettre à jour le nombre de boids
+  labelNbBoids.html("Nombre de boids : " + flock.length);
 
-    // on dessine la cible qui suit la souris
-    target.x = mouseX;
-    target.y = mouseY;
+  // on dessine la cible qui suit la souris
+  target.x = mouseX;
+  target.y = mouseY;
 
-    push();
-    fill("lightgreen");
-    noStroke();
-    ellipse(target.x, target.y, target.r, target.r);
-     pop();
-
+  push();
+  fill("lightgreen");
+  noStroke();
+  ellipse(target.x, target.y, target.r, target.r);
+  pop();
   for (let boid of flock) {
     // équivalent de applyBehaviors, cohesion + separation + alignenement + confinement
     boid.flock(flock, obstacles);
@@ -129,12 +128,12 @@ function draw() {
     boid.fleeWithTargetRadius(requin);
 
     // on tester le comportement fleeWithTargetRadius sur tous les obstacles
-    
+
     boid.fleeWithTargetRadius(obstacles[0]);
 
     boid.update();
     boid.show();
-  }  
+  }
 
   // REQUIN
   let wanderForce = requin.wander();
@@ -147,17 +146,17 @@ function draw() {
   // dessin du cercle en fil de fer jaune
   noFill();
   stroke("yellow");
-  ellipse(requin.pos.x, requin.pos.y, rayonDeDetection*2, rayonDeDetection*2);
+  ellipse(requin.pos.x, requin.pos.y, rayonDeDetection * 2, rayonDeDetection * 2);
 
   let closest = requin.getVehiculeLePlusProche(flock);
 
   if (closest) {
     // distance entre le requin et le poisson le plus proche
     let d = p5.Vector.dist(requin.pos, closest.pos);
-    if(d < rayonDeDetection) {
+    if (d < rayonDeDetection) {
       // on fonce vers le poisson !!!
       // SI LE SON N'EST PAS EN TRAIN DE JOUER ALORS ON JOUE LE SON DU REQUIN QUI FONCE VERS LE POISSON
-      if(!ouuu.isPlaying()) {
+      if (!ouuu.isPlaying()) {
         ouuu.play();
       }
 
@@ -195,8 +194,8 @@ function draw() {
 }
 
 function mouseDragged() {
-  const b = new Boid(mouseX, mouseY, fishImage);
-  
+  const b = new Boid(mouseX, mouseY, coinImage);
+
   b.r = random(8, 40);
 
   flock.push(b);
@@ -210,14 +209,14 @@ function mousePressed() {
 }
 
 function keyPressed() {
- if (key === 'd') {
+  if (key === 'd') {
     Boid.debug = !Boid.debug;
   } else if (key === 'r') {
     // On donne une taille différente à chaque boid
     flock.forEach(b => {
       b.r = random(8, 40);
     });
-  } else if( key === 'o') {
+  } else if (key === 'o') {
     // ajouter un obstacle à la position de la souris
     let o = new Obstacle(mouseX, mouseY, random(20, 60), "lightgreen");
     obstacles.push(o);

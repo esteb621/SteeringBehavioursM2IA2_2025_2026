@@ -24,8 +24,8 @@ function setup() {
       particles.push(new Particle(point));
     }
   }
-  textDraw("PLURIBUS", width / 3, height / 2, 256);
-
+  textDraw("PLURIBUS", width/3.2  , height / 1.8, 256);
+    
 }
 
 // Appelée 60 fois par seconde
@@ -70,21 +70,19 @@ function draw() {
 
 function textDraw(text, x, y, size) {
   let pts = font.textToPoints(text, x, y, size, { sampleFactor: 0.2 });
-  pts.forEach((point, index) => {
-    point = createVector(point.x, point.y);
-    steeringForce = particles[index].arrive(point, 0);
-    particles[index].applyForce(steeringForce);
-    particles[index].update();
-    particles[index].show();
-
-  })
+  pts.forEach((p) => {
+    let point = createVector(p.x, p.y);
+    let particle = new Particle(point);
+    particle.isText = true; // Pour la force de rappel et ignorer ljForce
+    particles.push(particle);
+  });
 }
 
 // Crée un anneau de particules au centre avec une vitesse radiale
 // (fonction globale, déclenchée toutes les 3s)
 function addWave(dots, numDots = 80, speed = 200) {
-  let cx = width / 2.8
-  let cy = height / 2.4
+  let cx = width/2.8
+  let cy = height/2.4
 
   for (let i = 0; i < numDots; i++) {
     let angle = TWO_PI * i / numDots;

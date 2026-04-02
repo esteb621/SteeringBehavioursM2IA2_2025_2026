@@ -7,6 +7,11 @@ class Particle {
         this.acc = createVector(0, 0);
         this.mass = 1;
         this.isText = false;
+        
+        // Propriétés par défaut pour le steering
+        this.maxSpeed = 5;
+        this.maxForce = 0.3;
+        this.rayonZoneDeFreinage = 100;
     }
 
     // Applique un bruit de Perlin sur l'accélération
@@ -31,26 +36,29 @@ class Particle {
     }
 
     // Met à jour la position/vitesse selon la physique (dt en secondes)
-    update(dt) {
+    // Met à jour la position/vitesse selon la physique (dt en secondes)
+    update(dt = 0.016) {
         if (this.isText) {
-            // Particule texte : rappel vers l'origine + léger bruit
-            this.vel.add(this.acc);
-            this.vel.limit(this.maxSpeed);
-            this.pos.add(this.vel);
-            this.acc.set(0, 0);
+            // Particule texte : rappel vers l'origine
+            this.applySpring();
         }
+        
         // F = ma  →  a = F/m   
         this.vel.add(p5.Vector.mult(this.acc, dt / this.mass));
+        
         // Limite la vitesse max
-        let maxSpeed = 100;
-        this.vel.limit(maxSpeed);
+        let speedLimit = this.isText ? 30 : 100;
+        this.vel.limit(speedLimit);
+        
         this.pos.add(p5.Vector.mult(this.vel, dt));
+        
         // Réinitialise l'accélération à chaque frame
         this.acc.set(0, 0);
+        
         // Rebond sur les bords (seulement pour les particules libres)
-        // if (!this.isText) {
-        //     this.edges();
-        // }
+        if (!this.isText) {
+            this.edges();
+        }
     }
 
 
@@ -106,7 +114,7 @@ class Particle {
         other.acc.y -= fy;
     }
 
-    arrive(target, d = 0) {
+    arrive(target, d = 0) { 
         // 2nd argument true enables the arrival behavior
         // 3rd argument d is the distance behind the target
         // for "snake" behavior

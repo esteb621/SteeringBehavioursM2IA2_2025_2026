@@ -13,8 +13,7 @@ function findProjection(pos, a, b) {
   v2.add(pos);
   return v2;
 }
-
-class Vehicle {
+class Heart {
   static debug = false;
 
   constructor(x, y) {
@@ -49,24 +48,21 @@ class Vehicle {
 
   // on fait une méthode applyBehaviors qui applique les comportements
   // seek et avoid
-  applyBehaviors(obstacles, vehicules, bx, by, bw, bh, d) {
+  applyBehaviors(obstacles, bx, by, bw, bh, d) {
     let avoidForce = this.avoid(obstacles);
-    let separateForce = this.separate(vehicules);
     let boundaryForce = this.boundaries(bx, by, bw, bh, d);
 
-    avoidForce.mult(3);
-    separateForce.mult(0.5);
+    avoidForce.mult(5);
     boundaryForce.mult(10);
 
     this.applyForce(avoidForce);
-    this.applyForce(separateForce);
     this.applyForce(boundaryForce);
   }
 
   avoid(obstacles) {
     let steer = createVector(0, 0);
     let count = 0;
-    
+
     // Detection 360° : On boucle sur tous les obstacles
     obstacles.forEach(o => {
       let d = p5.Vector.dist(this.pos, o.pos);
@@ -89,7 +85,7 @@ class Vehicle {
       steer.limit(this.maxForce);
     }
 
-    if (Vehicle.debug) {
+    if (Heart.debug) {
       push();
       noFill();
       stroke(0, 255, 0, 100);
@@ -439,10 +435,10 @@ class Vehicle {
     translate(this.pos.x, this.pos.y);
 
     // Affichage de heart.png centré
-    image(heartImg, -this.r/2, -this.r/2, this.r, this.r);
+    image(heartImg, -this.r / 2, -this.r / 2, this.r, this.r);
 
     // cercle pour le debug
-    if (Vehicle.debug) {
+    if (Heart.debug) {
       stroke(255);
       noFill();
       circle(0, 0, this.r);
@@ -453,7 +449,7 @@ class Vehicle {
     //this.drawVector(this.pos, p5.Vector.mult(this.vel, 10), color(255, 0, 0));
 
     // Cercle pour évitement entre vehicules et obstacles
-    if (Vehicle.debug) {
+    if (Heart.debug) {
       stroke(255);
       noFill();
       circle(this.pos.x, this.pos.y, this.r);
@@ -492,24 +488,4 @@ class Vehicle {
     pop();
   }
 
-}
-
-class Target extends Vehicle {
-  constructor(x, y) {
-    super(x, y);
-    this.vel = p5.Vector.random2D();
-    this.vel.mult(5);
-  }
-
-  show() {
-    push();
-    stroke(255);
-    strokeWeight(2);
-    fill("#F063A4");
-    push();
-    translate(this.pos.x, this.pos.y);
-    circle(0, 0, this.r * 2);
-    pop();
-    pop();
-  }
 }

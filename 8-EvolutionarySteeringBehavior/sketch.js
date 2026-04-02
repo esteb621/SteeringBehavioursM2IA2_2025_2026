@@ -9,6 +9,7 @@
 // Part 5: https://youtu.be/VnFF5V5DS8s
 
 const vehicles = [];
+const predators = [];
 const food = [];
 const poison = [];
 
@@ -38,9 +39,15 @@ function afficheGUI() {
   let labelAddVehicles = createDiv('Click and drag to add vehicles');
   labelAddVehicles.position(10, 40);
   labelAddVehicles.style('color', 'white');
+
+  // Add label : "click and drag to add predators"
+  let labelAddPredators = createDiv('Press p to add predators');
+  labelAddPredators.position(10, 70);
+  labelAddPredators.style('color', 'white');
+  
   // add Label "press d to toggle debug mode"
   let labelToggleDebug = createDiv('Press d to toggle debug mode');
-  labelToggleDebug.position(10, 70);
+  labelToggleDebug.position(10, 100);
   labelToggleDebug.style('color', 'white'); 
   // add label "vehicles clone themselves when they live enough"
   let labelClone = createDiv('Vehicles clone themselves when they live enough : possible mutation of genes !');

@@ -1,17 +1,22 @@
 let pursuer1;
 let target;
 let spears = [];
-let vehicules = [];
+let lasers = [];
 let heartImg;
-let score = 0;
+let heartLives = 5;
+let playerLives = 3;
 let gameState = "PLAY"; // PLAY, WIN, LOSE, BREAKING
 let gameTimer = 30;
 let startTime;
 let fragments = [];
 let restartButton;
 
+// Cooldown pour les lasers
+let laserCooldown = 2000;
+let lastLaserTime = 0;
+
 // Cooldown pour les spears
-let spearCooldown = 1000;
+let spearCooldown = 2000;
 let lastSpearTime = 0;
 
 let munition = 10;
@@ -26,6 +31,12 @@ let lastResetTime = 0;
 
 function preload() {
   heartImg = loadImage("assets/images/heart.png");
+  soundFormats('mp3', 'ogg');
+  battleMusic = loadSound("assets/music/battle.mp3");
+  damageGivenSound = loadSound("assets/music/undertale-damage-taken.mp3");
+  spear = loadSound("assets/music/spear.mp3")
+  winSong = loadSound("assets/music/win.mp3")
+  heartBreak = loadSound("assets/music/heartbreak.m4a")
 }
 
 function setup() {
@@ -39,29 +50,30 @@ function setup() {
 }
 
 function resetGame() {
-  score = 0;
   gameTimer = 30;
   startTime = millis();
   gameState = "PLAY";
   spears = [];
-  vehicules = [];
   fragments = [];
   munition = 10;
   isRecharging = false;
-  
+
   if (restartButton) restartButton.hide();
 
-  bW = min(windowWidth, windowHeight) * 0.3;
+  bW = min(windowWidth, windowHeight) * 0.5;
   bH = bW;
   bX = (windowWidth - bW) / 2;
   bY = (windowHeight - bH) / 1.1;
 
-  pursuer1 = new Vehicle(bX + bW / 2, bY + bH / 2);
-  vehicules.push(pursuer1);
-
+  heart = new Heart(bX + bW / 2, bY + bH / 2);
+  heartLives = 5;
+  playerLives = 3;
+  lasers = [];
   lastResetTime = millis();
   // Play music
-  
+
+  battleMusic.loop();
+
 }
 
 function draw() {
@@ -81,7 +93,7 @@ function draw() {
 function playLoop() {
   let elapsed = (millis() - startTime) / 1000;
   let remaining = max(0, gameTimer - elapsed);
-
+  let targetPlayer = createVector(mouseX, mouseY);
   // Dessin du carré limite
   noFill();
   stroke(255);
@@ -92,9 +104,14 @@ function playLoop() {
   fill(255);
   textSize(32);
   textAlign(LEFT, TOP);
-  text("Objectif: 5 hits", 20, 20);
-  text("Score: " + score, 20, 60);
+  text("Objectif: " + heartLives + " hits", 20, 20);
   text("Temps: " + ceil(remaining) + "s", 20, 100);
+
+  // Votre vie
+  text("Votre vie: ", 20, 50);
+  for (let i = 0; i < playerLives; i++) {
+    image(heartImg, 170 + i * 40, 50, 30, 30);
+  }
 
   // Munitions
   text("Munitions: ", 20, 140);
@@ -105,20 +122,60 @@ function playLoop() {
     text("Recharge...", 200, 140);
     if (!isRecharging) {
       isRecharging = true;
-      setTimeout(recharge, 2000);
+      setTimeout(recharge, spearCooldown);
     }
   }
 
+
+
+  // Lancer des lasers (toutes les 5 secondes)
+  if (millis() - lastLaserTime > laserCooldown) {
+    lastLaserTime = millis();
+    launchLaser();
+  }
+
+  // Supression du lasers au bout de 10secondes
+  if (millis() - lastLaserTime > 2000) {
+    console.log("Laser removed");
+    lasers.splice(0, lasers.length);
+  }
+  for (let i = lasers.length - 1; i >= 0; i--) {
+    let l = lasers[i];
+
+    if (l.pos.dist(targetPlayer) < l.r + 10) {
+      playerLives--;
+      damageGivenSound.play();
+
+      lasers.splice(i, 1); // On retire le laser qui a touché
+      continue;
+    }
+    for (let j = spears.length - 1; j >= 0; j--) {
+      let s = spears[j];
+      if (l.pos.dist(s.pos) < l.r + s.r) {
+        lasers.splice(i, 1);
+        spears.splice(j, 1);
+        i--;
+        break;
+      }
+    }
+    l.applyBehaviors(targetPlayer);
+    l.update();
+    l.show();
+  }
+
+
   // Check Game State
-  if (score >= 5) {
+  if (heartLives === 0) {
     gameState = "BREAKING";
     breakStartTime = millis();
-    initHeartBreak(vehicules[0].pos.copy());
-    vehicules = []; // Hide heart
+    initHeartBreak(heart.pos.copy());
+    heart = null; // Hide heart
+    battleMusic.stop();
+    heartBreak.play();
     return;
   }
 
-  if (remaining <= 0) {
+  if (remaining <= 0 || playerLives <= 0) {
     gameState = "LOSE";
     restartButton.show();
     return;
@@ -130,34 +187,31 @@ function playLoop() {
     s.update();
     s.show();
 
-    for (let j = vehicules.length - 1; j >= 0; j--) {
-      let v = vehicules[j];
-      let d = p5.Vector.dist(s.pos, v.pos);
-      if (d < s.r + v.r_pourDessin) {
-        score++;
-        spears.splice(i, 1);
-        break;
-      }
-    }
-
-    if (s && (s.pos.x < 0 || s.pos.x > width || s.pos.y < 0 || s.pos.y > height)) {
-      if (spears[i] === s) spears.splice(i, 1);
+    let d = p5.Vector.dist(s.pos, heart.pos);
+    if (d < s.r + heart.r_pourDessin) {
+      damageGivenSound.play();
+      heartLives--;
+      spears.splice(i, 1);
+      break;
     }
   }
+  // Heart logic
+  heart.applyBehaviors(spears, bX, bY, bW, bH, boundaryMargin);
+  heart.update();
+  heart.show();
 
-  // Vehicles logic
-  vehicules.forEach(v => {
-    v.applyBehaviors(spears, vehicules, bX, bY, bW, bH, boundaryMargin);
-    v.update();
-    v.show();
-  });
 }
-
 function initHeartBreak(pos) {
+  heartBreak.play();
   // Create fragments
   for (let i = 0; i < 15; i++) {
     fragments.push(new Fragment(pos.x, pos.y));
   }
+}
+
+function launchLaser() {
+  laser = new Vehicle(heart.pos.x, heart.pos.y);
+  lasers.push(laser);
 }
 
 function breakingLoop() {
@@ -165,11 +219,12 @@ function breakingLoop() {
     fragments[i].update();
     fragments[i].show();
   }
-  
+
   // Transition to Win Screen after 2 seconds
   if (millis() - breakStartTime > 2000) {
-     gameState = "WIN";
-     restartButton.show();
+    gameState = "WIN";
+    winSong.play();
+    restartButton.show();
   }
 }
 
@@ -184,24 +239,23 @@ function loseScreen() {
   fill(255, 0, 0);
   textSize(64);
   textAlign(CENTER, CENTER);
+  battleMusic.stop();
   text("GAME OVER", width / 2, height / 2);
 }
 
 function mousePressed() {
   // On ignore le clic s'il vient de relancer le jeu (évite de tirer une spear en cliquant sur recommencer)
   if (millis() - lastResetTime < 200) return;
-
-  if (gameState === "PLAY" && mouseButton === LEFT && munition > 0) {
+  let isOutside = mouseX < bX || mouseX > bX + bW || mouseY < bY || mouseY > bY + bH;
+  if (gameState === "PLAY" && mouseButton === LEFT && munition > 0 && isOutside) {
     munition--;
     let closestV = null;
     let minD = Infinity;
-    vehicules.forEach(v => {
-      let d = dist(mouseX, mouseY, v.pos.x, v.pos.y);
-      if (d < minD) {
-        minD = d;
-        closestV = v;
-      }
-    });
+    let d = dist(mouseX, mouseY, heart.pos.x, heart.pos.y);
+    if (d < minD) {
+      minD = d;
+      closestV = heart;
+    }
 
     if (closestV) {
       spears.push(new Spear(mouseX, mouseY, closestV.pos.x, closestV.pos.y));
