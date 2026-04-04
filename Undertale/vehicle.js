@@ -1,4 +1,5 @@
 class Vehicle {
+  static debug = false;
   constructor(x, y) {
     // position du véhicule
     this.pos = createVector(x, y);
@@ -14,18 +15,11 @@ class Vehicle {
     this.r = 16;
   }
 
-  
-  applyBehaviors(target) {
-    let force = this.seek(target);
-    //let force = this.flee(target);
-    this.applyForce(force);
-  }
-
   // seek est un comportement qui permet de faire se rapprocher le véhicule de 
   // la cible passée en paramètre (un vecteur p5.Vector, par exemple la position de 
   // la souris)
   seek(target) {
- 
+
     // on calcule la direction vers la cible : la vitesse DESIREE
     // C'est l'ETAPE 1 (action : se diriger vers une cible)
     let desiredSpeed = p5.Vector.sub(target, this.pos);
@@ -45,11 +39,50 @@ class Vehicle {
     return force;
   }
 
-  // comportement de fuite, inverse de seek
-  flee(target) {
-    // inverse de seek !
-    return this.seek(target).mult(-1);
+
+
+  /* Poursuite d'un point devant la target !
+   cette methode renvoie la force à appliquer au véhicule
+*/
+  pursue(target) {
+
+    // On dessine le vecteur vitesse de la target
+    if (Vehicle.debug) {
+      this.drawVector(target.pos, target.vel.copy().mult(10));
+    }
+    // 1 - calcul de la position future de la cible
+    // on fait une copie de la vitesse de la target
+    // (pour ne pas modifier la vitesse de la target)
+    let targetAhead = target.vel.copy();
+
+    // On predit 20 frames
+    targetAhead.mult(20);
+
+    // 3 - on positionne  la target au bout de ce vecteur
+    // (on ajoute ce vecteur à la position de la target)
+    targetAhead.add(target.pos);
+    // 6 - appel à seek avec ce point comme cible 
+    let force = this.seek(targetAhead);
+
+    // n'oubliez pas, on renvoie la force à appliquer au véhicule !
+    return force;
   }
+
+  drawVector(pos, v) {
+    push();
+    // Dessin du vecteur depuis pos comme origne
+    strokeWeight(3);
+    stroke("red");
+    line(pos.x, pos.y, pos.x + v.x, pos.y + v.y);
+    // dessine une petite fleche au bout du vecteur vitesse
+    let arrowSize = 5;
+    translate(pos.x + v.x, pos.y + v.y);
+    rotate(v.heading());
+    translate(-arrowSize / 2, 0);
+    triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
+    pop();
+  }
+
 
   // --------------------------------------------
   // LES DEUX METHODES SUIVANTES SONT INCHANGEES QUEL QUE SOIT LE COMPORTEMENT
@@ -58,6 +91,53 @@ class Vehicle {
   // en fait on additionne le vecteur force au vecteur accélération
   applyForce(force) {
     this.acc.add(force);
+  }
+
+  cohesion(vehicles) {
+    let perceptionRadius = 2 * this.perceptionRadius;
+    let steering = createVector();
+    let total = 0;
+
+    for (let other of vehicles) {
+      let d = dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y);
+      if (other != this && d < perceptionRadius) {
+        steering.add(other.pos);
+        total++;
+      }
+    }
+    if (total > 0) {
+      steering.div(total);
+
+      steering.sub(this.pos);
+      steering.setMag(this.maxSpeed);
+      steering.sub(this.vel);
+      steering.limit(this.maxForce);
+    }
+    return steering;
+  }
+
+  separation(vehicles) {
+    let perceptionRadius = this.perceptionRadius;
+
+    let steering = createVector();
+    let total = 0;
+
+    for (let other of vehicles) {
+      let d = dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y);
+      if (other != this && d < perceptionRadius) {
+        let diff = p5.Vector.sub(this.pos, other.pos);
+        diff.div(d * d); // Weight by inverse distance squared
+        steering.add(diff);
+        total++;
+      }
+    }
+    if (total > 0) {
+      steering.div(total);
+      steering.setMag(this.maxSpeed);
+      steering.sub(this.vel);
+      steering.limit(this.maxForce);
+    }
+    return steering;
   }
 
   // appelée 60 fois par seconde par la boucle d'animation de p5 (la fonction draw 
@@ -77,37 +157,6 @@ class Vehicle {
     this.acc.set(0, 0);
   }
 
-  // On dessine le véhicule
-  show() {
-    // sauvegarde du contexte graphique (couleur pleine, fil de fer, 
-    // épaisseur du trait, position et rotation du repère de référence)
-    push();
-    // formes fil de fer en blanc
-    stroke("white");
-    // épaisseur du trait = 2
-    strokeWeight(2);
-
-    // formes pleines en bleu
-    fill("blue");
-
-    // on déplace le repère de référence.
-    translate(this.pos.x, this.pos.y);
-    // et on le tourne. heading() renvoie l'angle du vecteur vitesse 
-    // (c'est l'angle du véhicule)
-    rotate(this.vel.heading());
-
-    //circle(0, 0, this.r * 2);
-
-    // Dessin d'un véhicule sous la forme d'un triangle. Comme s'il était droit, 
-    // avec le 0, 0 en haut à gauche
-    triangle(-this.r, -this.r / 2, -this.r, this.r / 2, this.r, 0);
-    
-    pop();
-
-    // dessin sous la forme d'une flèche du vecteur vitesse
-    this.drawVelocityVector();
-  }
-
   drawVelocityVector() {
     push();
 
@@ -125,7 +174,7 @@ class Vehicle {
 
     pop();
   }
-  
+
   // que fait cette méthode ?
   edges() {
     if (this.pos.x > width + this.r) {

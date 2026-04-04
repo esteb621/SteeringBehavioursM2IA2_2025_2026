@@ -14,7 +14,6 @@ function findProjection(pos, a, b) {
   return v2;
 }
 class Heart extends Vehicle {
-  static debug = false;
 
   constructor(x, y) {
     super(x, y);
@@ -48,7 +47,7 @@ class Heart extends Vehicle {
   }
 
   // on fait une méthode applyBehaviors qui applique les comportements
-  // seek et avoid
+  // seek et evade
   applyBehaviors(obstacles, bx, by, bw, bh, d) {
     let avoidForce = this.avoid(obstacles);
     let boundaryForce = this.boundaries(bx, by, bw, bh, d);
@@ -95,96 +94,7 @@ class Heart extends Vehicle {
       steer.limit(currentMaxForce);
     }
 
-    if (Heart.debug) {
-      push();
-      noFill();
-      stroke(0, 255, 0, 100);
-      circle(this.pos.x, this.pos.y, this.perceptionRadius * 2);
-      
-      // Deuxième cercle rouge pour indiquer la zone de danger accrue
-      stroke(255, 0, 0, 100);
-      circle(this.pos.x, this.pos.y, this.perceptionRadius);
-      pop();
-    }
-
     return steer;
-  }
-
-  avoidCorrige(obstacles) {
-    // calcul d'un vecteur ahead devant le véhicule
-    // il regarde par exemple 60 frames devant lui
-    let ahead = this.vel.copy();
-    ahead.mult(60);
-    //on calcue ahead2 deux fois plus petit
-    let ahead2 = ahead.copy();
-    ahead2.mult(0.5);
-
-    // on le dessine avec ma méthode this.drawVector(pos vecteur, color)
-    this.drawVector(this.pos, ahead, "yellow");
-
-    // Calcul des coordonnées du point au bout de ahead
-    let pointAuBoutDeAhead = this.pos.copy().add(ahead);
-    let pointAuBoutDeAhead2 = this.pos.copy().add(ahead2);
-
-    // Detection de l'obstacle le plus proche
-    let obstacleLePlusProche = this.getObstacleLePlusProche(obstacles);
-
-    // Si pas d'obstacle, on renvoie un vecteur nul
-    if (obstacleLePlusProche == undefined) {
-      return createVector(0, 0);
-    }
-
-    // On calcule la distance entre le cercle et le bout du vecteur ahead
-    let distance1 = pointAuBoutDeAhead.dist(obstacleLePlusProche.pos);
-    let distance2 = pointAuBoutDeAhead2.dist(obstacleLePlusProche.pos);
-    let distance = min(distance1, distance2);
-
-
-    // On dessine le point au bout du vecteur ahead pour debugger
-    fill("red");
-    circle(pointAuBoutDeAhead.x, pointAuBoutDeAhead.y, 10);
-    fill("blue");
-    circle(pointAuBoutDeAhead2.x, pointAuBoutDeAhead2.y, 10);
-
-    // On dessine la zone d'évitement
-    // Pour cela on trace une ligne large qui va de la position du vaisseau
-    // jusqu'au point au bout de ahead
-    stroke(100, 100);
-    strokeWeight(this.largeurZoneEvitementDevantVaisseau);
-    line(this.pos.x, this.pos.y, pointAuBoutDeAhead.x, pointAuBoutDeAhead.y);
-
-    // si la distance est < rayon de l'obstacle
-    // il y a collision possible et on dessine l'obstacle en rouge
-
-    if (distance < obstacleLePlusProche.r + this.largeurZoneEvitementDevantVaisseau + this.r) {
-      // collision possible 
-
-      // calcul de la force d'évitement. C'est un vecteur qui va
-      // du centre de l'obstacle vers le point au bout du vecteur ahead
-      let force;
-      if (distance1 < distance2) {
-        force = p5.Vector.sub(pointAuBoutDeAhead, obstacleLePlusProche.pos);
-      }
-      else {
-        force = p5.Vector.sub(pointAuBoutDeAhead2, obstacleLePlusProche.pos);
-      }
-      // on le dessine en jaune pour vérifier qu'il est ok (dans le bon sens etc)
-      this.drawVector(obstacleLePlusProche.pos, force, "yellow");
-
-      // Dessous c'est l'ETAPE 2 : le pilotage (comment on se dirige vers la cible)
-      // on limite ce vecteur à la longueur maxSpeed
-      // force est la vitesse désirée
-      force.setMag(this.maxSpeed);
-      // on calcule la force à appliquer pour atteindre la cible avec la formule
-      // que vous commencez à connaitre : force = vitesse désirée - vitesse courante
-      force.sub(this.vel);
-      // on limite cette force à la longueur maxForce
-      force.limit(this.maxForce);
-      return force;
-    } else {
-      // pas de collision possible
-      return createVector(0, 0);
-    }
   }
 
   // Exerce une force renvoyant vers le centre du canvas si le véhicule s'approche
@@ -426,8 +336,6 @@ class Heart extends Vehicle {
 
   // On dessine le véhicule, le chemin etc.
   show() {
-    // dessin du chemin
-    this.drawPath();
     // dessin du vehicule
     this.drawVehicle();
     // dessin sous la forme d'une flèche du vecteur vitesse
@@ -437,18 +345,20 @@ class Heart extends Vehicle {
   drawVelocityVector() {
     push();
 
-    // Dessin du vecteur vitesse
-    // Il part du centre du véhicule et va dans la direction du vecteur vitesse
-    strokeWeight(3);
-    stroke("red");
-    line(this.pos.x, this.pos.y, this.pos.x + this.vel.x * 10, this.pos.y + this.vel.y * 10);
-    // dessine une petite fleche au bout du vecteur vitesse
-    let arrowSize = 5;
-    translate(this.pos.x + this.vel.x * 10, this.pos.y + this.vel.y * 10);
-    rotate(this.vel.heading());
-    translate(-arrowSize / 2, 0);
-    triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
 
+    if (Vehicle.debug) {
+      // Dessin du vecteur vitesse
+      // Il part du centre du véhicule et va dans la direction du vecteur vitesse
+      strokeWeight(3);
+      stroke("red");
+      line(this.pos.x, this.pos.y, this.pos.x + this.vel.x * 10, this.pos.y + this.vel.y * 10);
+      // dessine une petite fleche au bout du vecteur vitesse
+      let arrowSize = 5;
+      translate(this.pos.x + this.vel.x * 10, this.pos.y + this.vel.y * 10);
+      rotate(this.vel.heading());
+      translate(-arrowSize / 2, 0);
+      triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
+    }
     pop();
   }
   drawVehicle() {
@@ -473,55 +383,27 @@ class Heart extends Vehicle {
     image(heartImg, -this.r / 2, -this.r / 2, this.r, this.r);
     noTint();
 
-    // cercle pour le debug
-    if (Heart.debug) {
-      stroke(255);
+    // Cercles de détection (Perception et Danger) centré sur le coeur
+    if (Vehicle.debug) {
+      push();
       noFill();
-      circle(0, 0, this.r);
+      strokeWeight(2);
+      
+      // Grand cercle vert de perception
+      stroke(0, 255, 0);
+      circle(0, 0, this.perceptionRadius * 2);
+
+      // Cercle rouge de zone de danger accrue
+      stroke(255, 0, 0);
+      circle(0, 0, this.perceptionRadius);
+      
+      // Cercle blanc pour le rayon de collision r
+      stroke(255);
+      circle(0, 0, this.r * 2);
+      pop();
     }
 
     // draw velocity vector
     pop();
-    //this.drawVector(this.pos, p5.Vector.mult(this.vel, 10), color(255, 0, 0));
-
-    // Cercle pour évitement entre vehicules et obstacles
-    if (Heart.debug) {
-      stroke(255);
-      noFill();
-      circle(this.pos.x, this.pos.y, this.r);
-    }
   }
-
-  drawPath() {
-    push();
-    stroke(255);
-    noFill();
-    strokeWeight(1);
-
-    fill(this.color);
-    // dessin du chemin
-    this.path.forEach((p, index) => {
-      if (!(index % 5)) {
-
-        circle(p.x, p.y, 1);
-      }
-    });
-    pop();
-  }
-  drawVector(pos, v, color) {
-    push();
-    // Dessin du vecteur vitesse
-    // Il part du centre du véhicule et va dans la direction du vecteur vitesse
-    strokeWeight(3);
-    stroke(color);
-    line(pos.x, pos.y, pos.x + v.x, pos.y + v.y);
-    // dessine une petite fleche au bout du vecteur vitesse
-    let arrowSize = 5;
-    translate(pos.x + v.x, pos.y + v.y);
-    rotate(v.heading());
-    translate(-arrowSize / 2, 0);
-    triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
-    pop();
-  }
-
 }

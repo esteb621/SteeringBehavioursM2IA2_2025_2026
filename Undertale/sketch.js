@@ -13,11 +13,14 @@ let restartButton;
 // Cooldown pour les lasers
 let laserCooldown = 2000;
 let lastLaserTime = 0;
+
 let perceptionSlider;
 let laserForceSlider;
 let laserSpeedSlider;
-let spearForceSlider;
+let laserCohesionSlider;
+let laserSeparationSlider;
 let spearSpeedSlider;
+
 
 // Cooldown pour les spears
 let spearCooldown = 2000;
@@ -55,14 +58,14 @@ function setup() {
   restartButton.mousePressed(resetGame);
   restartButton.hide();
   perceptionSlider = createCustomSlider("Rayon de detection", 0, 300, 150, 1, 20, 180);
-  // heartForceSlider = createCustomSlider("Force du coeur", 0, 1, 0.2, 0.01, 20, 210);
-  // heartSpeedSlider = createCustomSlider("Vitesse du coeur", 1, 20, 8, 0.5, 20, 240);
+  heartForceSlider = createCustomSlider("Force du coeur", 0, 1, 0.2, 0.01, 20, 210);
+  heartSpeedSlider = createCustomSlider("Vitesse du coeur", 1, 20, 4, 0.5, 20, 240);
 
   laserForceSlider = createCustomSlider("Force des lasers", 0, 1, 0.2, 0.01, 20, 270);
   laserSpeedSlider = createCustomSlider("Vitesse des lasers", 1, 20, 4, 0.5, 20, 300);
-
-  spearForceSlider = createCustomSlider("Force des lances", 0, 1, 0, 0.01, 20, 330);
-  spearSpeedSlider = createCustomSlider("Vitesse des lances", 1, 20, 8, 0.5, 20, 360);
+  laserCohesionSlider = createCustomSlider("Cohésion des lasers", 0, 1, 0.2, 0.01, 20, 330);
+  laserSeparationSlider = createCustomSlider("Séparation des lasers", 0, 1, 0.2, 0.01, 20, 360);
+  spearSpeedSlider = createCustomSlider("Vitesse des lances", 1, 20, 8, 0.5, 20, 390);
 
 
 }
@@ -91,22 +94,9 @@ function resetGame() {
 
 function draw() {
   background(0, 0, 0, 100);
-  // Regles
-  fill(255);
-  textSize(20);
-  textAlign(RIGHT, TOP);
-  text("Règles : ", width - 100, 20);
-  text("A l'aide de votre curseur, eliminer le coeur en faisant un clic droit pour invoquer des lances", width - 100, 45);
-  text("Attention, le coeur vous lancera des lasers toutes les deux secondes qui vous suivent indefiniment !", width - 100, 70);
-  text("Vous pouvez vous en debarasser en les touchant avec vos lances", width - 100, 95);
-  text("Vous devez toucher le coeur 5 fois pour gagner et vous avez 3 vies.", width - 100, 120);
-  text("Vous avez droit qu'a 10 fleches et 2 secondes de recharge a chaque fois", width - 100, 145);
-  fill(255, 0, 0);
-  text("Vous ne pouvez pas tirer a l'interieur du cadre !", width -100, 170);
-  fill(255);
-  text("Vous pouvez ajuster la difficulté du jeu en modifiant le rayon de detection des lances, la vitesse, la force des lances/lasers. Bonne chance!", width-100, 195);
-   if (gameState === "START") {
+  if (gameState === "START") {
     startScreen();
+    afficherRegles()
   } else if (gameState === "PLAY") {
     playLoop();
   } else if (gameState === "BREAKING") {
@@ -127,15 +117,16 @@ function playLoop() {
   rect(bX, bY, bW, bH);
 
   // UI
-  fill(255);
-  textSize(32);
+  fill(255)
+  strokeWeight(0)
+  textSize(24);
   textAlign(LEFT, TOP);
   text("Objectif: " + heartLives + " hits", 20, 20);
-  
+
   if (heart) {
     heart.perceptionRadius = perceptionSlider.value();
-    // heart.maxForce = heartForceSlider.value();
-    // heart.maxSpeed = heartSpeedSlider.value();
+    heart.maxForce = heartForceSlider.value();
+    heart.maxSpeed = heartSpeedSlider.value();
   }
 
   // Votre vie
@@ -189,10 +180,12 @@ function playLoop() {
         break;
       }
     }
-    
+
+    // On met à jour les paramètres du laser
     l.maxForce = laserForceSlider.value();
     l.maxSpeed = laserSpeedSlider.value();
-    
+    l.cohesionWeight = laserCohesionSlider.value();
+    l.separationWeight = laserSeparationSlider.value();
     l.applyBehaviors(targetPlayer, lasers);
     l.update();
     l.show();
@@ -220,10 +213,9 @@ function playLoop() {
   // Spears logic
   for (let i = spears.length - 1; i >= 0; i--) {
     let s = spears[i];
-    
-    s.maxForce = spearForceSlider.value();
+
     s.maxSpeed = spearSpeedSlider.value();
-    
+
     s.update();
     s.show();
 
@@ -321,7 +313,7 @@ function mousePressed() {
     }
 
     if (closestV) {
-      spears.push(new Spear(mouseX, mouseY, closestV.pos.x, closestV.pos.y));
+      spears.push(new Spear(mouseX, mouseY, closestV));
     }
   }
 }
@@ -329,9 +321,7 @@ function mousePressed() {
 // Mode debug lorsqu'on clique sur d
 function keyPressed() {
   if (key === 'd') {
-    Heart.debug = !Heart.debug;
-    Laser.debug = !Laser.debug;
-    Spear.debug = !Spear.debug;
+    Vehicle.debug = !Vehicle.debug;
   }
 }
 
@@ -347,7 +337,7 @@ function createCustomSlider(label, min, max, val, step, posX, posY) {
   let labelP = createP(label);
   labelP.position(posX, posY);
   labelP.style('color', 'white');
-  
+
   // Adjusted horizontal spacing since labels can be wide
   slider.position(posX + 160, posY + 17);
 
@@ -361,4 +351,22 @@ function createCustomSlider(label, min, max, val, step, posX, posY) {
   });
 
   return slider;
+}
+
+function afficherRegles() {
+  // Regles
+  fill(255);
+  textSize(20);
+  textAlign(RIGHT, TOP);
+  text("Règles : ", width - 100, 20);
+  text("À l'aide de votre curseur, éliminer le coeur en faisant un clic droit pour invoquer des lances", width - 100, 45);
+  text("Attention, le coeur vous lancera des lasers toutes les deux secondes qui vous suivent indefiniment !", width - 100, 70);
+  text("Vous pouvez vous en debarasser en les touchant avec vos lances", width - 100, 95);
+  text("Vous devez toucher le coeur 5 fois pour gagner et vous avez 3 vies.", width - 100, 120);
+  text("Vous avez droit qu'à 10 flèches et 2 secondes de recharge à chaque fois", width - 100, 145);
+  fill(255, 0, 0);
+  text("Vous ne pouvez pas tirer à l'intérieur du carré !", width - 100, 170);
+  fill(255);
+  text("Vous pouvez ajuster la difficulté du jeu en modifiant \n le rayon de detection des lances, la vitesse, la force des lances/lasers. Bonne chance!", width - 100, 195);
+
 }
