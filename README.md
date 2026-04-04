@@ -51,19 +51,18 @@ Le mode Debug (activable avec la touche **`d`**) permet de visualiser les coulis
 ---
 
 ## 💭 4. Mon expérience personnelle
-J'ai eu l'idée de ce jeu en m'inspirant d'Undertale, un jeu que j'affectionne beaucoup. C'était une bonne facon pour moi d'implementer des steerings behavior sur les projectiles et le coeur.
+J'ai eu l'idée de ce jeu en m'inspirant d'Undertale, un jeu que j'affectionne beaucoup. C'était une bonne facon pour moi d'implémenter des steerings behavior sur les projectiles et le coeur.
 
-Au début, le coeur ne détectait que les projectiles qu'il y avait devant lui avec la fonction avoid mais c'etait pas suffisant du tout, alors je l'ai modifié en m'inspirant de Boids pour qu'il detecte les projectiles dans un rayon défini.
+Le coeur a un comportement de evade, inspiré de la classe Boid, il detecte les projectiles dans un rayon défini et s'en éloigne. De plus, si le projectile est proche de lui (cercle rouge en debug), il va se déplacer plus vite.
 
 Pour les lances, j'ai préféré qu'il aille simplement vers la prochaine destination du coeur en regardant 20 frames devant, car ca aurait été trop facile si les lances 
-le poursuivait intelligement. Ca permet en plus de créer des strategies pour réussir a le toucher, comme se positionner pile devant lui ou attendre que le coeur soit au bord du cadre par exemple. 
+le poursuivait intelligement. Ca permet en plus de créer des strategies pour réussir à le toucher, comme se positionner pile devant lui ou attendre que le coeur soit au bord du cadre par exemple. 
 
 Enfin pour les lasers, ils poursuivent indefiniement le joueur avec seek, et en plus on un comportement de cohésion et de séparation pour qu'ils ne se rentrent pas dedans et qu'ils forment une sorte de barrière contre le joueur.
 
-- J'ai choisi d'implementer la poursuite pour le coeur, car c'est un comportement qui permet de fuir intelligement une cible en mouvement, ce qui est parfait pour un projectile.
 Difficultés rencontrés:
-- Trouver les bons comportements qui conviennent pour chaque classe
-- Le coeur ne pouvait pas détecter les projectiles qui étaient ailleurs que devant lui, j'ai du le modifié en m'inspirant de ce qui se faisait dans Boids pour qu'il detecte les projectiles dans un rayon défini.
+- Trouver les bons comportements qui conviennent pour chaque sous-classe
+- Le coeur ne pouvait pas détecter les projectiles qui étaient ailleurs que devant lui avec la fonction standard de flee de Vehicle, je l'ai donc modifier en m'inspirant de ce qui se faisait dans Boids pour qu'il detecte les projectiles dans un rayon défini.
 ---
 
 ## 🚀 5. Outils utilisés
