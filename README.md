@@ -2,7 +2,7 @@
 
 [Lien vers la GitHub Pages](https://kinopix621.github.io/SteeringBehavioursM2IA2_2025_2026/) (Placeholder) | [Vidéo de démonstration YouTube](https://youtu.be/w9mQSAANRas) (Placeholder)
 
-![Déroulement du jeu](assets/undertale.gif)
+![Déroulement du jeu](assets/images/undertale.gif)
 
 ---
 
